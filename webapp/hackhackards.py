@@ -12,6 +12,20 @@ from pydub import AudioSegment
 from pydub.utils import which
 from langcodes import Language  
 
+
+import subprocess
+
+# Check if ffmpeg is installed and accessible
+ffmpeg_path = subprocess.getoutput("which ffmpeg")
+if not ffmpeg_path:
+    raise FileNotFoundError("ffmpeg or ffprobe not found. Please verify the paths.")
+else:
+    print(f"Found ffmpeg at {ffmpeg_path}")
+
+# Proceed with your existing logic
+
+
+
 # Explicitly set the ffmpeg and ffprobe paths
 ffmpeg_path = "D:/ffmpeg-2025-04-21-git-9e1162bdf1-full_build/bin/ffmpeg.exe"
 ffprobe_path = "D:/ffmpeg-2025-04-21-git-9e1162bdf1-full_build/bin/ffprobe.exe"
