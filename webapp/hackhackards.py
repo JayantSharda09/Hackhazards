@@ -90,6 +90,8 @@ def translate():
 @app.route("/translate-audio", methods=["POST"])
 def translate_audio():
     try:
+        print("Incoming request:", request.form, request.files)  # Log request data
+
         # Get audio file from request
         if "audio" not in request.files:
             return jsonify({"error": "No audio file provided"}), 400
