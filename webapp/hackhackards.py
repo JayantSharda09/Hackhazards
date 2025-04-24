@@ -12,6 +12,14 @@ from pydub import AudioSegment
 from pydub.utils import which
 from langcodes import Language  
 
+import os
+
+# Set the path for ffmpeg and ffprobe explicitly
+os.environ["FFMPEG_BINARY"] = "/usr/bin/ffmpeg"
+os.environ["FFPROBE_BINARY"] = "/usr/bin/ffprobe"
+
+# Now proceed with your existing logic
+
 
 import subprocess
 
