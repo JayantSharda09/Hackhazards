@@ -56,7 +56,7 @@ print(f"Using ffmpeg: {AudioSegment.converter}")
 print(f"Using ffprobe: {AudioSegment.ffprobe}")
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins
 
 @app.route("/")
 def index():
