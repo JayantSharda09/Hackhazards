@@ -13,10 +13,21 @@ from pydub.utils import which
 from langcodes import Language  
 
 import os
+import subprocess
 
-# Set the path for ffmpeg and ffprobe explicitly
 os.environ["FFMPEG_BINARY"] = "/usr/bin/ffmpeg"
 os.environ["FFPROBE_BINARY"] = "/usr/bin/ffprobe"
+
+# Check if they exist
+ffmpeg_path = subprocess.getoutput("which ffmpeg")
+ffprobe_path = subprocess.getoutput("which ffprobe")
+
+if not ffmpeg_path or not ffprobe_path:
+    raise FileNotFoundError("ffmpeg or ffprobe not found. Please verify the paths.")
+else:
+    print(f"Found ffmpeg at {ffmpeg_path}")
+    print(f"Found ffprobe at {ffprobe_path}")
+
 
 # Now proceed with your existing logic
 
