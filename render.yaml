@@ -3,3 +3,5 @@ services:
     name: hackhazards
     env: docker
     plan: free
+    buildCommand: "./build.sh"
+    startCommand: "python webapp/hackhackards.py"
