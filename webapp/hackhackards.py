@@ -46,8 +46,8 @@ else:
 
 
 # Explicitly set the ffmpeg and ffprobe paths
-ffmpeg_path = "D:/ffmpeg-2025-04-21-git-9e1162bdf1-full_build/bin/ffmpeg.exe"
-ffprobe_path = "D:/ffmpeg-2025-04-21-git-9e1162bdf1-full_build/bin/ffprobe.exe"
+ffmpeg_path = "/usr/bin/ffmpeg"
+ffprobe_path = "/usr/bin/ffprobe"
 if not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path):
     raise FileNotFoundError(f"ffmpeg or ffprobe not found. Please verify the paths.")
 AudioSegment.converter = ffmpeg_path
