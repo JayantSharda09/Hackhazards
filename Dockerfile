@@ -1,7 +1,7 @@
-FROM node:18
+FROM python:3.10-slim-bullseye
 
-# Install ffmpeg
-RUN apt-get update && apt-get install -y ffmpeg
+# Install ffmpeg and other system dependencies
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -9,8 +9,11 @@ WORKDIR /app
 # Copy project files
 COPY . .
 
-# Install dependencies
-RUN npm install
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Start your app
-CMD ["npm", "start"]
+# Expose the port your app runs on (optional for FastAPI/Flask apps)
+EXPOSE 10000
+
+# Command to run your Python app
+CMD ["python", "webapp/hackhackards.py"]
