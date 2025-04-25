@@ -163,6 +163,29 @@ def delete_audio_files():
         print("Error in delete_audio_files:", str(e))
         return jsonify({"error": str(e)}), 500
 
+@app.route("/clean-audio-files", methods=["POST"])
+def clean_audio_files():
+    try:
+        audio_dir = os.path.join(os.path.dirname(__file__), "../audio_files")
+
+        if not os.path.exists(audio_dir):
+            return jsonify({"message": "Audio directory does not exist."}), 200
+
+        for file_name in os.listdir(audio_dir):
+            file_path = os.path.join(audio_dir, file_name)
+            if os.path.isfile(file_path):
+                try:
+                    os.unlink(file_path)
+                    print(f"Deleted file: {file_path}")
+                except Exception as e:
+                    print(f"Error deleting file {file_path}: {e}")
+
+        return jsonify({"message": "All audio files cleaned up successfully."}), 200
+
+    except Exception as e:
+        print("Error in clean_audio_files:", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/check-ffmpeg", methods=["GET"])
 def check_ffmpeg():
     try:
