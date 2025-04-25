@@ -30,6 +30,9 @@ AudioSegment.ffprobe = ffprobe_path
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins
 
+# Increase file upload size limit
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -73,6 +76,9 @@ def translate_audio():
         source_lang = request.form.get("source_lang", "auto")
         target_lang = request.form.get("target_lang", "en")
 
+        # Log source and target languages
+        print(f"Source language: {source_lang}, Target language: {target_lang}")
+
         # Use a temporary directory for audio processing
         with tempfile.TemporaryDirectory() as temp_dir:
             audio_file_path = os.path.join(temp_dir, "uploaded_audio.wav")
@@ -98,6 +104,7 @@ def translate_audio():
 
                 try:
                     text = recognizer.recognize_google(audio_data, language=source_lang)
+                    print(f"Recognized text: {text}")
                 except sr.UnknownValueError:
                     print("Could not understand the audio")
                     return jsonify({"error": "Could not understand the audio"}), 400
@@ -108,6 +115,7 @@ def translate_audio():
             # Translate the text
             translator = Textify()
             basic_translation = translator.translate_text(text, target_lang, source_lang)
+            print(f"Translated text: {basic_translation}")
 
             # Convert translated text to speech
             tts = gTTS(text=basic_translation, lang=target_lang)
