@@ -9,51 +9,23 @@ from gtts import gTTS
 import base64
 import io
 from pydub import AudioSegment
-from pydub.utils import which
 from langcodes import Language  
 
-import os
-import subprocess
+import shutil
 
-os.environ["FFMPEG_BINARY"] = "/usr/bin/ffmpeg"
-os.environ["FFPROBE_BINARY"] = "/usr/bin/ffprobe"
-
-# Check if they exist
-ffmpeg_path = subprocess.getoutput("which ffmpeg")
-ffprobe_path = subprocess.getoutput("which ffprobe")
+# Dynamically detect FFmpeg and FFprobe paths
+ffmpeg_path = shutil.which("ffmpeg")
+ffprobe_path = shutil.which("ffprobe")
 
 if not ffmpeg_path or not ffprobe_path:
-    raise FileNotFoundError("ffmpeg or ffprobe not found. Please verify the paths.")
+    raise FileNotFoundError("FFmpeg or FFprobe not found. Please ensure they are installed and accessible in the system PATH.")
 else:
-    print(f"Found ffmpeg at {ffmpeg_path}")
-    print(f"Found ffprobe at {ffprobe_path}")
+    print(f"Using FFmpeg: {ffmpeg_path}")
+    print(f"Using FFprobe: {ffprobe_path}")
 
-
-# Now proceed with your existing logic
-
-
-import subprocess
-
-# Check if ffmpeg is installed and accessible
-ffmpeg_path = subprocess.getoutput("which ffmpeg")
-if not ffmpeg_path:
-    raise FileNotFoundError("ffmpeg or ffprobe not found. Please verify the paths.")
-else:
-    print(f"Found ffmpeg at {ffmpeg_path}")
-
-# Proceed with your existing logic
-
-
-
-# Explicitly set the ffmpeg and ffprobe paths
-ffmpeg_path = "/usr/bin/ffmpeg"
-ffprobe_path = "/usr/bin/ffprobe"
-if not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path):
-    raise FileNotFoundError(f"ffmpeg or ffprobe not found. Please verify the paths.")
+# Explicitly set the paths for pydub
 AudioSegment.converter = ffmpeg_path
 AudioSegment.ffprobe = ffprobe_path
-print(f"Using ffmpeg: {AudioSegment.converter}")
-print(f"Using ffprobe: {AudioSegment.ffprobe}")
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins
@@ -95,34 +67,20 @@ def translate_audio():
         # Get audio file from request
         if "audio" not in request.files:
             return jsonify({"error": "No audio file provided"}), 400
-            
+
         audio_file = request.files["audio"]
         source_lang = request.form.get("source_lang", "auto")
         target_lang = request.form.get("target_lang", "en")
 
-        # Define the directory to save audio files
-        audio_dir = os.path.join(os.path.dirname(__file__), "../audio_files")
-        os.makedirs(audio_dir, exist_ok=True)  # Create the directory if it doesn't exist
+        # Use a temporary directory for audio processing
+        with tempfile.TemporaryDirectory() as temp_dir:
+            audio_file_path = os.path.join(temp_dir, "uploaded_audio.wav")
+            audio_file.save(audio_file_path)
+            print(f"Audio file saved at: {audio_file_path}")
 
-        # Save the uploaded audio file in the audio_files directory
-        audio_file_path = os.path.join(audio_dir, f"uploaded_audio_{tempfile.mktemp(suffix='.wav').split(os.sep)[-1]}")
-        with open(audio_file_path, "wb") as f:
-            f.write(audio_file.read())
-        print(f"Audio file saved at: {audio_file_path}")
-
-        # Create a copy of the file for processing
-        processing_file_path = os.path.join(audio_dir, f"processing_audio_{tempfile.mktemp(suffix='.wav').split(os.sep)[-1]}")
-        shutil.copy(audio_file_path, processing_file_path)
-        print(f"Processing file created at: {processing_file_path}")
-
-        pcm_wav_path = None
-        tts_audio_path = None
-        tts_wav_path = None
-
-        try:
             # Convert the audio file to PCM WAV format if necessary
-            audio = AudioSegment.from_file(processing_file_path)
-            pcm_wav_path = os.path.join(audio_dir, f"converted_audio_{tempfile.mktemp(suffix='.wav').split(os.sep)[-1]}")
+            pcm_wav_path = os.path.join(temp_dir, "converted_audio.wav")
+            audio = AudioSegment.from_file(audio_file_path)
             audio.export(pcm_wav_path, format="wav", codec="pcm_s16le")
             print(f"PCM WAV file created at: {pcm_wav_path}")
 
@@ -134,12 +92,10 @@ def translate_audio():
 
             # Convert speech to text
             with sr.AudioFile(pcm_wav_path) as source:
-                # Adjust for ambient noise and record
                 recognizer.adjust_for_ambient_noise(source)
                 audio_data = recognizer.record(source)
 
                 try:
-                    # Attempt speech recognition
                     text = recognizer.recognize_google(audio_data, language=source_lang)
                 except sr.UnknownValueError:
                     return jsonify({"error": "Could not understand the audio"}), 400
@@ -149,51 +105,21 @@ def translate_audio():
             # Translate the text
             translator = Textify()
             basic_translation = translator.translate_text(text, target_lang, source_lang)
-            
-            # Use basic translation as fallback
-            enhanced_translation = basic_translation
 
             # Convert translated text to speech
-            tts = gTTS(text=enhanced_translation, lang=target_lang)
+            tts = gTTS(text=basic_translation, lang=target_lang)
             audio_fp = io.BytesIO()
             tts.write_to_fp(audio_fp)
             audio_fp.seek(0)
 
-            # Save the TTS audio to a file for debugging
-            tts_audio_path = os.path.join(audio_dir, "tts_output.mp3")
-            with open(tts_audio_path, "wb") as tts_file:
-                tts_file.write(audio_fp.read())
-            print(f"TTS audio saved at: {tts_audio_path}")
-
-            # Convert the TTS audio to WAV format for playback
-            tts_audio = AudioSegment.from_file(tts_audio_path)
-            tts_wav_path = os.path.join(audio_dir, "tts_output.wav")
-            tts_audio.export(tts_wav_path, format="wav", codec="pcm_s16le")
-            print(f"TTS WAV audio saved at: {tts_wav_path}")
-
-            # Explicitly delete the TTS AudioSegment object to release the file lock
-            del tts_audio
-
             # Return the audio as base64
-            with open(tts_audio_path, "rb") as tts_file:
-                audio_b64 = base64.b64encode(tts_file.read()).decode("utf-8")
+            audio_b64 = base64.b64encode(audio_fp.read()).decode("utf-8")
 
             return jsonify({
                 "recognized_text": text,
                 "basic_translation": basic_translation,
-                "ai_translation": enhanced_translation,
                 "audio_base64": audio_b64
             })
-
-        finally:
-            # Ensure cleanup of temporary files
-            for file_path in [audio_file_path, processing_file_path, pcm_wav_path, tts_audio_path, tts_wav_path]:
-                if file_path and os.path.exists(file_path):
-                    try:
-                        os.unlink(file_path)
-                        print(f"Deleted file: {file_path}")
-                    except Exception as e:
-                        print(f"Error deleting file {file_path}: {e}")
 
     except Exception as e:
         print("Error in translate_audio:", str(e))
