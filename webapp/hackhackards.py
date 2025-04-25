@@ -66,6 +66,7 @@ def translate_audio():
 
         # Get audio file from request
         if "audio" not in request.files:
+            print("No audio file provided")
             return jsonify({"error": "No audio file provided"}), 400
 
         audio_file = request.files["audio"]
@@ -98,8 +99,10 @@ def translate_audio():
                 try:
                     text = recognizer.recognize_google(audio_data, language=source_lang)
                 except sr.UnknownValueError:
+                    print("Could not understand the audio")
                     return jsonify({"error": "Could not understand the audio"}), 400
                 except sr.RequestError as e:
+                    print(f"Speech recognition error: {str(e)}")
                     return jsonify({"error": f"Speech recognition error: {str(e)}"}), 500
 
             # Translate the text
@@ -111,9 +114,11 @@ def translate_audio():
             audio_fp = io.BytesIO()
             tts.write_to_fp(audio_fp)
             audio_fp.seek(0)
+            print("Translated audio generated successfully")
 
             # Return the audio as base64
             audio_b64 = base64.b64encode(audio_fp.read()).decode("utf-8")
+            print("Audio successfully encoded to base64")
 
             return jsonify({
                 "recognized_text": text,
