@@ -150,6 +150,29 @@ def delete_audio_files():
         print("Error in delete_audio_files:", str(e))
         return jsonify({"error": str(e)}), 500
 
+@app.route("/check-ffmpeg", methods=["GET"])
+def check_ffmpeg():
+    try:
+        import subprocess
+        result = subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return jsonify({"ffmpeg_version": result.stdout.decode("utf-8")}), 200
+    except FileNotFoundError:
+        return jsonify({"error": "FFmpeg is not installed or not found in PATH"}), 500
+
+@app.route("/test-audio-conversion", methods=["POST"])
+def test_audio_conversion():
+    try:
+        audio_file = request.files["audio"]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_path = os.path.join(temp_dir, "input_audio.wav")
+            output_path = os.path.join(temp_dir, "output_audio.wav")
+            audio_file.save(input_path)
+            audio = AudioSegment.from_file(input_path)
+            audio.export(output_path, format="wav", codec="pcm_s16le")
+            return jsonify({"message": "Audio conversion successful"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 def getLanguageCode(language):
     try:
         # Use langcodes to validate and fetch the language code
