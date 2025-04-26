@@ -520,7 +520,7 @@
                         targetText.value = "Translating...";
 
                         try {
-                            const res = await fetch("http://localhost:5000/translate-audio", {
+                            const res = await fetch("/translate-audio", {
                                 method: "POST",
                                 body: formData
                             });
